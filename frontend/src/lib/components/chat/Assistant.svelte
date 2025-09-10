@@ -1,13 +1,18 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { marked } from 'marked';
     import CustomTerms from './CustomTerms.svelte';
-  
+
+    const user_public_key = "your_public_key"
+    const user_private_key = "your_private_key"
     interface Message {
       role: 'user' | 'assistant';
       content: string;
     }
   
     let query = '';
+    let mode = 'regex'; // Default mode
+    let showDropdown = false;
     let messages: Message[] = [];
     let isLoading = false;
     let error: string | null = null;
@@ -36,6 +41,19 @@
       ];
     });
   
+    function setMode(newMode: string) {
+      mode = newMode;
+    }
+
+    function toggleDropdown() {
+      showDropdown = !showDropdown;
+    }
+
+    function selectMode(newMode: string) {
+      mode = newMode;
+      showDropdown = false;
+    }
+
     async function sendQuery() {
       if (!query.trim()) return;
   
@@ -48,19 +66,34 @@
       thinkingInfo = null;
   
       try {
-        const encodedQuery = encodeURIComponent(userMessage);
-        const url = `${API_URL}/query/${encodedQuery}?provider=${DEFAULT_PROVIDER}&model=${DEFAULT_MODEL}&temperature=${DEFAULT_TEMPERATURE}&max_tokens=${DEFAULT_MAX_TOKENS}`;
-  
-        const response = await fetch(url);
+        const url = `${API_URL}/process_secure_query`;
+        const payload = {
+        text: userMessage,
+        mode: mode,
+        public_key: user_public_key,
+        private_key: user_private_key,
+        provider: DEFAULT_PROVIDER,
+        model: DEFAULT_MODEL,
+        temperature: DEFAULT_TEMPERATURE,
+        max_tokens: DEFAULT_MAX_TOKENS
+        };
+        
+        const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+        });
         if (!response.ok) throw new Error(`API returned status ${response.status}`);
   
         const data = await response.json();
   
         // Temporary anonymization display
         thinkingInfo = {
-          original: data.original_query,
-          anonymized: data.anonymized_query,
-          report: data.formatted_report
+          original: data.original_text,
+          anonymized: data.anonymized_text,
+          report: 'PII detection and anonymization complete.'
         };
   
         // Simulate brief "thinking" delay
@@ -71,7 +104,7 @@
           ...messages,
           {
             role: 'assistant',
-            content: data.deanonymized_response
+            content: data.final_response
           }
         ];
       } catch (err: any) {
@@ -90,17 +123,73 @@
       }
     }
 
+    async function anonymizeImage() {
+      try {
+        const formData = new FormData();
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.onchange = async () => {
+          const file = fileInput.files[0];
+          if (file) {
+            formData.append('file', file);
+            const response = await fetch(`${API_URL}/anonymize_image`, {
+              method: 'POST',
+              body: formData
+            });
+            if (!response.ok) throw new Error(`API returned status ${response.status}`);
+            const imageBlob = await response.blob();
+            const imageUrl = URL.createObjectURL(imageBlob);
+            window.open(imageUrl, '_blank');
+          }
+        };
+        fileInput.click();
+      } catch (err) {
+        console.error('Error calling anonymize_image API:', err);
+        error = `Error: ${err.message}. Make sure the API server is running at ${API_URL}.`;
+      }
+    }
+
     function toggleCustomTerms() {
       showCustomTerms = !showCustomTerms;
     }
   </script>
   
-  <!-- Main container with improved layout -->
-  <div class="w-full flex flex-col lg:flex-row lg:space-x-8">
-    <!-- Chat container -->
+  
+
+    <!-- Main container with improved layout -->
+    <div class="w-full flex flex-col lg:flex-row lg:space-x-8">
+  <!-- Chat container -->
     <div class="flex-grow max-w-4xl mx-auto w-full">
-      <!-- Improved UI with enhanced blur effects -->
-      <div class="card-blur shadow-2xl overflow-hidden">
+      <div class="card-blur shadow-2xl overflow-hidden ">
+        <div class="absolute top-4 right-4 z-10">
+          <!-- Mode Selection Dropdown -->
+          <div class="relative">
+            <button on:click={toggleDropdown} class="px-4 py-2 bg-black bg-opacity-50 text-white rounded-lg shadow-md">
+              {#if mode === 'regex'}
+                Ninja Mode
+              {:else if mode === 'ner'}
+                Spyglass Mode
+              {:else if mode === 'llm'}
+                Blacksite Mode
+              {/if}
+            </button>
+            {#if showDropdown}
+              <div class="absolute right-0 mt-2 w-48 bg-black bg-opacity-70 text-white rounded-lg shadow-lg">
+                <div on:click={() => selectMode('regex')} class="px-4 py-2 hover:bg-gray-700 cursor-pointer">
+                  <strong>Ninja Mode</strong><br><span class="text-xs">Fast but shallow cuts</span>
+                </div>
+                <div on:click={() => selectMode('ner')} class="px-4 py-2 hover:bg-gray-700 cursor-pointer">
+                  <strong>Spyglass Mode</strong><br><span class="text-xs">Peering into context</span>
+                </div>
+                <div on:click={() => selectMode('llm')} class="px-4 py-2 hover:bg-gray-700 cursor-pointer">
+                  <strong>Blacksite Mode</strong><br><span class="text-xs">Deep ops, nothing leaks out</span>
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+      <div class="card-blur shadow-2xl  overflow-hidden">
       
         <!-- Chat Messages Container with Blurry Effect -->
         <div class="h-[500px] overflow-y-auto p-6 space-y-4 backdrop-blur-xl bg-opacity-20 bg-purple-950">
@@ -109,7 +198,7 @@
               <div class="{message.role === 'user' 
                 ? 'bg-purple-800 bg-opacity-60 backdrop-blur-xs ml-12 rounded-lg p-4 max-w-[80%] shadow-lg' 
                 : 'bg-purple-900 bg-opacity-50 backdrop-blur-xs mr-12 border-l-4 border-neon-purple rounded-lg p-4 max-w-[80%] shadow-lg'}">
-                <p class="text-slate-100">{@html message.content.replace(/\n/g, '<br>')}</p>
+                <p class="text-slate-100">{@html marked(message.content)}</p>
               </div>
             </div>
           {/each}
@@ -163,6 +252,12 @@
                 Send
               {/if}
             </button>
+          <button
+              on:click={anonymizeImage}
+              class="px-6 py-2 bg-gradient-to-r from-neon-purple to-neon-blue hover:opacity-90 text-white font-medium rounded-lg shadow transition-all flex items-center justify-center min-w-[80px]"
+            >
+              Anonymize Image
+            </button>
           </div>
       
           <!-- Footer with toggle for custom terms -->
@@ -189,16 +284,19 @@
         </div>
       </div>
     </div>
-
+    </div>
+  
+    
     <!-- Custom Terms Panel (conditionally shown) -->
     {#if showCustomTerms}
       <div class="mt-6 lg:mt-0 w-full lg:w-80 hidden lg:block">
-        <div class="card-blur p-4">
-          <CustomTerms />
-        </div>
-      </div>
+    <div class="card-blur p-4">
+      <CustomTerms />
+    </div>
+  </div>
     {/if}
   </div>
+  
   
   <!-- Mobile version of custom terms (shown as modal) -->
   {#if showCustomTerms}

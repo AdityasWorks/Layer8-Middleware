@@ -1,4 +1,5 @@
 console.log("AI Prompt Privacy Protector content script loaded.");
+console.log("formatMessage available:", typeof window.formatMessage);
 
 // EXTENSION CHECK
 chrome.storage.sync.get('enabled', function (data) {
@@ -87,7 +88,7 @@ function initializeExtension() {
 
       // Make the API call
       const response = await fetch(`${API_URL}/deanonymize`, {
-        method: "POST",
+        method: "GET",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: processedText })
       });
@@ -340,19 +341,35 @@ function initializeExtension() {
 
 
 
-  // ATtachs the button to GPT interface
-
-  function attachButtonToChatGPTInterface(promptTextarea, encryptButton) {
-    // Look for the toolbar where other buttons are located
-    const toolbar = document.querySelector('.flex.items-center.gap-2.overflow-x-auto') ||
-      document.querySelector('.flex.items-center');
-
-    if (toolbar) {
-      // Insert our button at the beginning of the toolbar
-      toolbar.insertBefore(encryptButton, toolbar.firstChild);
+function attachButtonToChatGPTInterface(promptTextarea, encryptButton) {
+  // Look for the new composer footer actions container
+  const footerActions = document.querySelector('[data-testid="composer-footer-actions"]');
+  
+  if (footerActions) {
+    // Insert our button at the beginning of the footer actions
+    footerActions.insertBefore(encryptButton, footerActions.firstChild);
+    return;
+  }
+  
+  // Fallback: look for the container with file upload and tool buttons
+  const actionsContainer = document.querySelector('.flex.items-center[style*="margin-right: 102px"]');
+  
+  if (actionsContainer) {
+    // Insert our button at the beginning
+    actionsContainer.insertBefore(encryptButton, actionsContainer.firstChild);
+    return;
+  }
+  
+  // Second fallback: try to find any container near the prompt area
+  const composerParent = promptTextarea.closest('.relative.flex.w-full.items-end');
+  if (composerParent) {
+    const actionsDiv = composerParent.querySelector('.bg-primary-surface-primary .flex.items-center');
+    if (actionsDiv) {
+      actionsDiv.insertBefore(encryptButton, actionsDiv.firstChild);
       return;
     }
   }
+}
 
   // Attaches the button to the Gemini interface
 
@@ -732,17 +749,29 @@ function initializeExtension() {
                   if (deanonymizedText) {
                     console.log("%c DEANONYMIZED TEXT:", "color: black; background-color: #ffeb3b; font-size: 14px; padding: 5px;");
                     console.log(deanonymizedText);
+    
+
 
                     // UPDATE THE ACTUAL DOM ELEMENT WITH DEANONYMIZED TEXT
-                    responseText.innerHTML = deanonymizedText;
+                    try {
+                    responseText.innerHTML = '';
+                    console.log("Calling formatMessage with text:", deanonymizedText.substring(0, 100) + "...");
+                    
+                    // textFormatter.js now handles the plain text to markdown conversion automatically
+                    formatMessage(deanonymizedText, responseText);
+                    console.log("formatMessage completed successfully");
+                  } catch (formatError) {
+                    console.error("Error in formatMessage:", formatError);
+                    responseText.textContent = deanonymizedText;
+                  }
 
                     // Add a visual indicator that the text has been deanonymized
                     responseText.style.opacity = '1';
-                    responseText.style.backgroundColor = 'rgba(16, 163, 127, 0.08)';
+                    responseText.style.backgroundColor = 'rgba (33, 32, 33, 1)';
                     responseText.style.padding = '8px';
                     responseText.style.borderRadius = '6px';
                     responseText.style.transition = 'all 0.3s ease';
-                    responseText.style.boxShadow = '0 1px 4px rgba(0,0,0,0.1)';
+                    // responseText.style.boxShadow = '0 1px 4px rgba(0,0,0,0.1)';
 
                     // Create a small indicator badge
                     const badge = document.createElement('div');

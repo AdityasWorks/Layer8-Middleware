@@ -105,6 +105,14 @@ class FullQueryResponse(BaseModel):
     llm_response: str
     deanonymized_response: str
 
+# Define models for custom terms
+class CustomTermRequest(BaseModel):
+    term: str
+    category: str
+
+class CustomTermsResponse(BaseModel):
+    terms: Dict[str, List[str]]
+
 # API Endpoints
 @app.get("/")
 async def root():
@@ -371,6 +379,45 @@ async def process_query_get(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+
+@app.get("/custom_terms", response_model=CustomTermsResponse)
+async def get_custom_terms(anonymizer: NLPDataAnonymizer = Depends(get_anonymizer)):
+    """
+    Retrieve all custom terms that have been added for anonymization.
+    """
+    try:
+        # Return the domain-specific terms from the anonymizer
+        # Convert sets to lists for JSON serialization
+        terms = {
+            k: list(v) for k, v in anonymizer.custom_detector.domain_specific_terms.items()
+        }
+        
+        return {"terms": terms}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving custom terms: {str(e)}")
+
+@app.post("/add_custom_term")
+async def add_custom_term(
+    request: CustomTermRequest,
+    anonymizer: NLPDataAnonymizer = Depends(get_anonymizer)
+):
+    """
+    Add a custom term to be anonymized in future queries.
+    
+    Args:
+        request: CustomTermRequest with term and category
+    """
+    try:
+        # Add the term to the anonymizer
+        anonymizer.custom_detector.add_single_term(request.category, request.term)
+        
+        # Save the updated state
+        if config.get("anonymizer", {}).get("save_mappings", True):
+            save_anonymizer_state(anonymizer)
+            
+        return {"message": f"Successfully added term '{request.term}' to category '{request.category}'"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error adding custom term: {str(e)}")
 
 # Run with: uvicorn api_service.main:app --reload
 # Access the API docs at: http://127.0.0.1:8000/docs

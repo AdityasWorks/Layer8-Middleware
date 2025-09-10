@@ -1,0 +1,128 @@
+.formatted-text {
+  line-height: 1.6;
+  color: inherit;
+}
+
+.markdown-h1, .markdown-h2, .markdown-h3, .markdown-h4, .markdown-h5, .markdown-h6 {
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.markdown-h1 { font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 4px; }
+.markdown-h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 2px; }
+.markdown-h3 { font-size: 1.3em; }
+.markdown-h4 { font-size: 1.1em; }
+.markdown-h5 { font-size: 1em; }
+.markdown-h6 { font-size: 0.9em; color: #666; }
+
+.markdown-hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 16px 0;
+}
+
+.markdown-ul, .markdown-ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.markdown-ul li, .markdown-ol li {
+  margin: 4px 0;
+}
+
+.markdown-blockquote {
+  border-left: 4px solid #ddd;
+  margin: 16px 0;
+  padding: 8px 16px;
+  background-color: rgba(0, 0, 0, 0.02);
+  font-style: italic;
+}
+
+.code-block {
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.code-language {
+  font-size: 12px;
+  color: #586069;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.inline-code {
+  background-color: rgba(175, 184, 193, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.markdown-table {
+  border-collapse: collapse;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.markdown-th, .markdown-td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-th {
+  background-color: #f6f8fa;
+  font-weight: 600;
+}
+
+.markdown-td {
+  background-color: #fff;
+}
+
+.markdown-table tr:nth-child(even) .markdown-td {
+  background-color: #f9f9f9;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .code-block {
+    background-color: #161b22;
+    border-color: #30363d;
+    color: #e6edf3;
+  }
+  
+  .markdown-th {
+    background-color: #21262d;
+    border-color: #30363d;
+    color: #e6edf3;
+  }
+  
+  .markdown-td {
+    background-color: #0d1117;
+    border-color: #30363d;
+    color: #e6edf3;
+  }
+  
+  .markdown-table tr:nth-child(even) .markdown-td {
+    background-color: #161b22;
+  }
+  
+  .inline-code {
+    background-color: rgba(110, 118, 129, 0.2);
+    color: #e6edf3;
+  }
+  
+  .markdown-blockquote {
+    border-left-color: #30363d;
+    background-color: rgba(110, 118, 129, 0.1);
+    color: #e6edf3;
+  }
+}
